@@ -1,8 +1,6 @@
 #include "joint2D.h"
 #include "link2d.h"
 
-//#include "../oglTwidget.h"
-
 #include <iostream>
 
 #include <cmath>
@@ -95,7 +93,7 @@ void Joint2D::set_position(QVector2D pos){
 }
 
 bool Joint2D::draw(QMatrix4x4 model, QMatrix4x4 projection){
-    m_circle->draw(model, projection);
+    return m_circle->draw(model, projection);
 }
 
 QRect Joint2D::getBB()const{

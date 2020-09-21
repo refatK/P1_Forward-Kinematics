@@ -121,8 +121,6 @@ void Link2D::compute(QVector2D pos, int n){
 }
 
 bool Link2D::draw(QMatrix4x4 model, QMatrix4x4 projection){
-    Polygon2D::draw(model, projection);
-    m_arrowhead->draw(model, projection);
-    return true;
+    return Polygon2D::draw(model, projection) && m_arrowhead->draw(model, projection);
 }
 
