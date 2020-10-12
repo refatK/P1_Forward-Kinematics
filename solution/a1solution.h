@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <dependencies/Eigen/Dense>
+#include <dependencies/Eigen/Geometry>
 
 #include "OpenGL/elements/joint2D.h"
 #include "OpenGL/elements/obstacle2d.h"
@@ -16,17 +17,21 @@ public:
     std::vector<Joint2D*>& m_joints;
     std::vector<Link2D*>& m_links;
 
-    std::vector<Eigen::Vector2f> m_joint_transforms;
-
+    std::vector<Eigen::Vector2f> m_joint_positions;
+    std::vector<Eigen::Transform<float,2,Eigen::Affine>> m_joint_transforms;
 
     void update(Joint2D* selected, QVector2D mouse_pos);
 
     static void test_eigen_library();
 
 private:
-    void initialize_joint_transform(int index);
-    void initialize_joint_transforms();
-
+    bool isRoot(Joint2D& joint);
+    void doFkPass(Joint2D& joint, QVector2D mouse_pos);
+    void updateJointPositions(Joint2D& joint);
+    void initialize_joint_position(int i);
+    void initialize_all_joint_positions();
+    void initialize_joint_transform(int i);
+    void initialize_all_joint_transforms();
 };
 
 #endif // A2SOLUTION_H
