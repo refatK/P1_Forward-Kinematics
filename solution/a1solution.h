@@ -34,7 +34,7 @@ private:
     void initialize_joint_transform(int i);
     void initialize_all_joint_transforms();
     void moveJointBy(Joint2D& joint, QVector2D translation);
-    void rotateJointBy(Joint2D& joint, float theta);
+    void rotateJointBy(Joint2D& joint, QVector2D currMathVecFromParent, float theta);
     QVector2D qtToMathCoords(QVector2D qtVec);
     QVector2D mathToQtCoords(QVector2D mathVec);
     float getMathAngle(QVector2D mathVec);
