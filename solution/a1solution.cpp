@@ -61,12 +61,19 @@ void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
 }
 
 void A1Solution::rotateJointBy(Joint2D& joint, QVector2D currMathVecFromParent, float theta) {
+    QVector2D currJointPos = joint.get_position();
     float mag = currMathVecFromParent.length();
     float currRot = this->getMathAngle(currMathVecFromParent);
     float newRot = currRot + theta;
     QVector2D newMathVecFromParent = QVector2D(mag*std::cos(newRot), mag*std::sin(newRot));
     QVector2D newQtVecFromParent = this->mathToQtCoords(newMathVecFromParent);
     joint.set_position(joint.get_parents()[0]->get_position() + newQtVecFromParent);
+
+    for (Joint2D* child : joint.get_children()) {
+        QVector2D mathVecFromJoint = this->qtToMathCoords(child->get_position() - currJointPos);
+        rotateJointBy(*child, mathVecFromJoint, theta);
+    }
+    return;
 }
 
 float A1Solution::angleToRotate(QVector2D mathVecToJoint, QVector2D mathVecToNewPos) {
