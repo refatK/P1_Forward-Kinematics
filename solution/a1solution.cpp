@@ -48,10 +48,34 @@ void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
 
     } else {
         // TODO: Implement child rotation case
+        Joint2D* parent = joint.get_parents()[0];
     }
 
     return;
 }
+
+void A1Solution::rotateJointBy(Joint2D& joint, float theta) {
+
+}
+
+float A1Solution::getMathAngle(QVector2D mathVec) {
+    return std::atan2(mathVec.y(), mathVec.x());
+}
+
+QVector2D A1Solution::qtToMathCoords(QVector2D qtVec) {
+    QVector2D mathVec = qtVec;
+    mathVec.setY(-qtVec.y());
+    return mathVec;
+}
+
+QVector2D A1Solution::mathToQtCoords(QVector2D mathVec) {
+    QVector2D qtVec = mathVec;
+    qtVec.setY(-mathVec.y());
+    return qtVec;
+}
+
+
+
 
 void A1Solution::moveJointBy(Joint2D& joint, QVector2D translation) {
     QVector2D curr_poss = joint.get_position();
