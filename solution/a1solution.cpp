@@ -113,7 +113,7 @@ bool A1Solution::isRoot(Joint2D& joint) {
 }
 
 int A1Solution::getJointIndex(Joint2D& joint) {
-    for(int i=0; i < this->m_joints.size(); ++i) {
+    for(int i=0; i < (int)this->m_joints.size(); ++i) {
         if (std::addressof(joint) == std::addressof(*m_joints[i])) {
             return i;
         }
