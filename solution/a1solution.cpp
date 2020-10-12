@@ -49,6 +49,11 @@ void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
     } else {
         // TODO: Implement child rotation case
         Joint2D* parent = joint.get_parents()[0];
+        QVector2D parentPos = parent->get_position();
+        QVector2D mathVecToJoint = this->qtToMathCoords(joint.get_position() - parentPos);
+        QVector2D mathVecToMouse = this->qtToMathCoords(mouse_pos - parentPos);
+        float theta = this->angleToRotate(mathVecToJoint, mathVecToMouse);
+        std::cout << "theta = " << theta << " rads./n theta = " << this->radsToDegrees(theta) << " degrees." << std::endl;
     }
 
     return;
@@ -58,9 +63,21 @@ void A1Solution::rotateJointBy(Joint2D& joint, float theta) {
 
 }
 
+float A1Solution::angleToRotate(QVector2D mathVecToJoint, QVector2D mathVecToNewPos) {
+    float currAngleOfJoint = this->getMathAngle(mathVecToJoint);
+    float newAngle = this->getMathAngle(mathVecToNewPos);
+    return newAngle - currAngleOfJoint;
+}
+
 float A1Solution::getMathAngle(QVector2D mathVec) {
     return std::atan2(mathVec.y(), mathVec.x());
 }
+
+float A1Solution::radsToDegrees(float radians) {
+    float pi = 4 * std::atan(1);
+    return (radians * 180.0f) / pi;
+}
+
 
 QVector2D A1Solution::qtToMathCoords(QVector2D qtVec) {
     QVector2D mathVec = qtVec;
@@ -101,7 +118,7 @@ bool A1Solution::isRoot(Joint2D& joint) {
 int A1Solution::getJointIndex(Joint2D& joint) {
     for(int i=0; i < this->m_joints.size(); ++i) {
         if (std::addressof(joint) == std::addressof(*m_joints[i])) {
-            std::cout << "NODE " << i << " has been selected." << std::endl;
+//            std::cout << "NODE " << i << " has been selected." << std::endl;
             return i;
         }
     }

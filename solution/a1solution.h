@@ -38,6 +38,8 @@ private:
     QVector2D qtToMathCoords(QVector2D qtVec);
     QVector2D mathToQtCoords(QVector2D mathVec);
     float getMathAngle(QVector2D mathVec);
+    float angleToRotate(QVector2D mathVecToJoint, QVector2D mathVecToNewPos);
+    float radsToDegrees(float radians);
 };
 
 #endif // A2SOLUTION_H
