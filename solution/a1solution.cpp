@@ -8,12 +8,22 @@ using Eigen::MatrixXd;
 A1Solution::A1Solution(std::vector<Joint2D*>& joints, std::vector<Link2D*>& links)
     :m_joints(joints),
     m_links(links){
+    std::cout << "I AM MADE " << std::endl;
+//    std::vector<Eigen::Transform<float,2,Eigen::Affine>> transforms(30);
+//    m_joint_transforms = &transforms;
+//    for(int i=0; i < this->m_joint_transforms->size(); ++i){
+//        this->m_joint_transforms->at(i).setIdentity();
+//    }
 }
 
 void A1Solution::update(Joint2D* selected, QVector2D mouse_pos){
+    std::cout << m_joints.size() << std::endl;
+    getJointIndex(*selected);
+//    return;
+
     // load vector postions in array
 //    this->initialize_all_joint_positions();
-    this->initialize_all_joint_transforms();
+//    this->initialize_all_joint_transforms();
 
     // Do Forward Kinematics
     this->doFkPass(*selected, mouse_pos);
@@ -23,12 +33,36 @@ void A1Solution::update(Joint2D* selected, QVector2D mouse_pos){
 //        // TODO, move children
 //        selected->set_position(mouse_pos);
 //    }
+
+    // remove reference to outdated transforms
+    // this->m_joint_transforms = nullptr;
 }
 
 void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
-    // TODO
+//    int i = this->getJointIndex(joint);
+
+    if (this->isRoot(joint)) {
+        // When root is chosen, we should translate it's transform
+        QVector2D change = mouse_pos - joint.get_position();
+        this->moveJointBy(joint, change);
+
+    } else {
+        // TODO: Implement child rotation case
+    }
+
     return;
 }
+
+void A1Solution::moveJointBy(Joint2D& joint, QVector2D translation) {
+    QVector2D curr_poss = joint.get_position();
+    joint.set_position(curr_poss + translation);
+
+    for (Joint2D* child : joint.get_children()) {
+        moveJointBy(*child, translation);
+    }
+    return;
+}
+
 
 void A1Solution::updateJointPositions(Joint2D& joint) {
     // TODO
@@ -38,6 +72,18 @@ void A1Solution::updateJointPositions(Joint2D& joint) {
 
 bool A1Solution::isRoot(Joint2D& joint) {
     return joint.get_parents().empty();
+}
+
+int A1Solution::getJointIndex(Joint2D& joint) {
+    for(int i=0; i < this->m_joints.size(); ++i) {
+        if (std::addressof(joint) == std::addressof(*m_joints[i])) {
+            std::cout << "NODE " << i << " has been selected." << std::endl;
+            return i;
+        }
+    }
+
+    std::cout << "SELECTED NODE IS NOT IN THE VECTOR.\n THIS SHOULDN'T HAPPEN." << std::endl;
+    return -1;
 }
 
 
@@ -50,14 +96,14 @@ void A1Solution::initialize_joint_transform(int i) {
     if(this->isRoot(*joint)) {
 //        qDebug() << "In root case " << i;
         // Use global postion if root
-        this->m_joint_transforms[i].translate(Eigen::Vector2f(joint_pos.x(), -joint_pos.y()));
+        this->m_joint_transforms->at(i).translate(Eigen::Vector2f(joint_pos.x(), -joint_pos.y()));
 //        std::cout << "Global pos of root node#" << i << " is:" << std::endl << m_joint_transforms[i].matrix() << std::endl << std::endl;
     } else {
 //        qDebug() << "In child case " << i;
         // Use relative postion if child
         QVector2D parent_pos = joint->get_parents()[0]->get_position();
         QVector2D relative_pos = joint_pos - parent_pos;
-        this->m_joint_transforms[i].translate(Eigen::Vector2f(relative_pos.x(), -relative_pos.y()));
+        this->m_joint_transforms->at(i).translate(Eigen::Vector2f(relative_pos.x(), -relative_pos.y()));
 //        std::cout << "local pos of child node#" << i << " is:" << std::endl << m_joint_transforms[i].matrix() << std::endl << std::endl;
     }
 }
@@ -67,13 +113,17 @@ void A1Solution::initialize_all_joint_transforms() {
     qDebug() << "Hello WORLD: A1Solution::initialize_joint_transforms()";
 
     // set transform list size to joints size
-    std::vector<Eigen::Transform<float,2,Eigen::Affine>> transforms(this->m_joints.size());
-    m_joint_transforms = transforms;
+//    std::vector<Eigen::Transform<float,2,Eigen::Affine>> transforms(this->m_joints.size());
+//    m_joint_transforms = &transforms;
 
-    qDebug() << "size is " << this->m_joint_transforms.size();
+//    m_joint_transforms->clear();
 
-    for(int i=0; i < this->m_joint_transforms.size(); ++i){
-        this->m_joint_transforms[i] = Eigen::Transform<float,2,Eigen::Affine>::Identity();
+    qDebug() << "size is " << this->m_joint_transforms->size();
+
+    for(int i=0; i < this->m_joints.size(); ++i){
+        this->m_joint_transforms->at(i).setIdentity();
+        std::cout << "Initial pos of node#" << i << " is:" << std::endl << m_joint_transforms->at(i).matrix() << std::endl << std::endl;
+
         this->initialize_joint_transform(i);
     }
 }

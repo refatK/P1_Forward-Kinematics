@@ -18,7 +18,7 @@ public:
     std::vector<Link2D*>& m_links;
 
     std::vector<Eigen::Vector2f> m_joint_positions;
-    std::vector<Eigen::Transform<float,2,Eigen::Affine>> m_joint_transforms;
+    std::vector<Eigen::Transform<float,2,Eigen::Affine>>* m_joint_transforms;
 
     void update(Joint2D* selected, QVector2D mouse_pos);
 
@@ -26,12 +26,15 @@ public:
 
 private:
     bool isRoot(Joint2D& joint);
+    int getJointIndex(Joint2D& joint);
     void doFkPass(Joint2D& joint, QVector2D mouse_pos);
     void updateJointPositions(Joint2D& joint);
     void initialize_joint_position(int i);
     void initialize_all_joint_positions();
     void initialize_joint_transform(int i);
     void initialize_all_joint_transforms();
+    void moveJointBy(Joint2D& joint, QVector2D translation);
+
 };
 
 #endif // A2SOLUTION_H
