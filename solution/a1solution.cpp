@@ -2,35 +2,55 @@
 
 using Eigen::MatrixXd;
 
+bool A1Solution::showStats = false;
+
 A1Solution::A1Solution(std::vector<Joint2D*>& joints, std::vector<Link2D*>& links)
     :m_joints(joints),
     m_links(links){
 }
 
+
 void A1Solution::update(Joint2D* selected, QVector2D mouse_pos){
-    std::cout << m_joints.size() << std::endl;
-    getJointIndex(*selected);
+    if(showStats) {
+        std::cout << "\nNumber of Nodes: " << m_joints.size() << std::endl << std::endl;
+        std::cout << ">NODE SELECTED: #" << getJointIndex(*selected) << std::endl;
+    }
 
     // Do Forward Kinematics
     this->doFkPass(*selected, mouse_pos);
 }
 
 void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
-//    int i = this->getJointIndex(joint);
-
     if (this->isRoot(joint)) {
+        if(showStats) {
+            std::cout << " --> Node Type: ROOT" << std::endl;
+        }
         // When root is chosen, we should translate it and it's children
         QVector2D change = mouse_pos - joint.get_position();
+
+        if(showStats) {
+            std::cout << std::endl << " ----> stats(translation): " << std::endl;
+            std::cout << " ----> New Position = " << mouse_pos << std::endl << std::endl;
+        }
+
         this->moveJointBy(joint, change);
     } else {
+        if(showStats) {
+            std::cout << " --> Node Type: CHILD" << std::endl;
+        }
         // When non-root chosen, we rotate the selected the nodes and its children
         Joint2D* parent = joint.get_parents()[0];
         QVector2D parentPos = parent->get_position();
         QVector2D mathVecToJoint = this->qtToMathCoords(joint.get_position() - parentPos);
         QVector2D mathVecToMouse = this->qtToMathCoords(mouse_pos - parentPos);
         float theta = this->angleToRotate(mathVecToJoint, mathVecToMouse);
-        std::cout << "theta = " << theta << " rads." << std::endl
-                  << "theta = " << this->radsToDegrees(theta) << " degrees." << std::endl;
+
+        if(showStats) {
+            std::cout << std::endl << " ----> stats(rotation): " << std::endl;
+            std::cout << " ----> Theta = " << theta << " rads (" << this->radsToDegrees(theta) << " degrees)." << std::endl << std::endl;
+            std::cout << " ----> New Rotation = " << getMathAngle(mathVecToMouse) << " rads (" << this->radsToDegrees(getMathAngle(mathVecToMouse)) << " degrees)." << std::endl << std::endl;
+        }
+
         this->rotateJointBy(joint, mathVecToJoint, theta);
     }
 }
@@ -95,7 +115,6 @@ bool A1Solution::isRoot(Joint2D& joint) {
 int A1Solution::getJointIndex(Joint2D& joint) {
     for(int i=0; i < this->m_joints.size(); ++i) {
         if (std::addressof(joint) == std::addressof(*m_joints[i])) {
-            std::cout << "NODE " << i << " has been selected." << std::endl;
             return i;
         }
     }
@@ -104,7 +123,15 @@ int A1Solution::getJointIndex(Joint2D& joint) {
     return -1;
 }
 
+void A1Solution::toggleStats() {
+    showStats = !showStats;
+}
+
+
 void A1Solution::test_eigen_library(){
+
+    // Modified this function slightly so I can use the Eigen test Button to toggle console logs
+    toggleStats();
 
     // create a simple matrix 5 by 6
     MatrixXd mat(5,6);

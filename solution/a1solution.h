@@ -16,9 +16,12 @@ public:
     std::vector<Joint2D*>& m_joints;
     std::vector<Link2D*>& m_links;
 
+    static bool showStats;
+
     void update(Joint2D* selected, QVector2D mouse_pos);
 
     static void test_eigen_library();
+    static void toggleStats();
 
 private:
     void doFkPass(Joint2D& joint, QVector2D mouse_pos);
@@ -31,6 +34,7 @@ private:
     QVector2D mathToQtCoords(QVector2D mathVec);
     bool isRoot(Joint2D& joint);
     int getJointIndex(Joint2D& joint);
+
 };
 
 #endif // A2SOLUTION_H
