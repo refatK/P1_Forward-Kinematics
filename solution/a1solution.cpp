@@ -1,121 +1,137 @@
 #include "a1solution.h"
 
-#include <QDebug>
-#include "dependencies/Eigen/Dense"
-
 using Eigen::MatrixXd;
+
+bool A1Solution::showStats = false;
 
 A1Solution::A1Solution(std::vector<Joint2D*>& joints, std::vector<Link2D*>& links)
     :m_joints(joints),
     m_links(links){
 }
 
+
 void A1Solution::update(Joint2D* selected, QVector2D mouse_pos){
-    // load vector postions in array
-//    this->initialize_all_joint_positions();
-    this->initialize_all_joint_transforms();
+    if(showStats) {
+        std::cout << "\nNumber of Nodes: " << m_joints.size() << std::endl << std::endl;
+        std::cout << ">NODE SELECTED: #" << getJointIndex(*selected) << std::endl;
+    }
 
     // Do Forward Kinematics
     this->doFkPass(*selected, mouse_pos);
-
-    // if joint is a root (has no parent, move it to mouse position)
-//    if (this->isRoot(*selected)) {
-//        // TODO, move children
-//        selected->set_position(mouse_pos);
-//    }
 }
 
 void A1Solution::doFkPass(Joint2D& joint, QVector2D mouse_pos) {
-    // TODO
-    return;
+    if (this->isRoot(joint)) {
+        if(showStats) {
+            std::cout << " --> Node Type: ROOT" << std::endl;
+        }
+        // When root is chosen, we should translate it and it's children
+        QVector2D change = mouse_pos - joint.get_position();
+
+        if(showStats) {
+            std::cout << std::endl << " ----> stats(translation): " << std::endl;
+            std::cout << " ----> New Position = " << mouse_pos << std::endl << std::endl;
+        }
+
+        this->moveJointBy(joint, change);
+    } else {
+        if(showStats) {
+            std::cout << " --> Node Type: CHILD" << std::endl;
+        }
+        // When non-root chosen, we rotate the selected the nodes and its children
+        Joint2D* parent = joint.get_parents()[0];
+        QVector2D parentPos = parent->get_position();
+        QVector2D mathVecToJoint = this->qtToMathCoords(joint.get_position() - parentPos);
+        QVector2D mathVecToMouse = this->qtToMathCoords(mouse_pos - parentPos);
+        float theta = this->angleToRotate(mathVecToJoint, mathVecToMouse);
+
+        if(showStats) {
+            std::cout << std::endl << " ----> stats(rotation): " << std::endl;
+            std::cout << " ----> Theta = " << theta << " rads (" << this->radsToDegrees(theta) << " degrees)." << std::endl << std::endl;
+            std::cout << " ----> New Rotation = " << getMathAngle(mathVecToMouse) << " rads (" << this->radsToDegrees(getMathAngle(mathVecToMouse)) << " degrees)." << std::endl << std::endl;
+        }
+
+        this->rotateJointBy(joint, mathVecToJoint, theta);
+    }
 }
 
-void A1Solution::updateJointPositions(Joint2D& joint) {
-    // TODO
-    return;
+void A1Solution::moveJointBy(Joint2D& joint, QVector2D translation) {
+    QVector2D curr_poss = joint.get_position();
+    joint.set_position(curr_poss + translation);
+
+    for (Joint2D* child : joint.get_children()) {
+        moveJointBy(*child, translation);
+    }
 }
 
+void A1Solution::rotateJointBy(Joint2D& joint, QVector2D currMathVecFromParent, float theta) {
+    QVector2D currJointPos = joint.get_position();
+    float mag = currMathVecFromParent.length();
+    float currRot = this->getMathAngle(currMathVecFromParent);
+
+    float newRot = currRot + theta;
+    QVector2D newMathVecFromParent = QVector2D(mag*std::cos(newRot), mag*std::sin(newRot));
+    QVector2D newQtVecFromParent = this->mathToQtCoords(newMathVecFromParent);
+
+    joint.set_position(joint.get_parents()[0]->get_position() + newQtVecFromParent);
+
+    for (Joint2D* child : joint.get_children()) {
+        QVector2D mathVecFromJoint = this->qtToMathCoords(child->get_position() - currJointPos);
+        rotateJointBy(*child, mathVecFromJoint, theta);
+    }
+}
+
+float A1Solution::angleToRotate(QVector2D mathVecToJoint, QVector2D mathVecToNewPos) {
+    float currAngleOfJoint = this->getMathAngle(mathVecToJoint);
+    float newAngle = this->getMathAngle(mathVecToNewPos);
+    return newAngle - currAngleOfJoint;
+}
+
+float A1Solution::getMathAngle(QVector2D mathVec) {
+    return std::atan2(mathVec.y(), mathVec.x());
+}
+
+float A1Solution::radsToDegrees(float radians) {
+    float pi = 4 * std::atan(1);
+    return (radians * 180.0f) / pi;
+}
+
+QVector2D A1Solution::qtToMathCoords(QVector2D qtVec) {
+    QVector2D mathVec = qtVec;
+    mathVec.setY(-qtVec.y());
+    return mathVec;
+}
+
+QVector2D A1Solution::mathToQtCoords(QVector2D mathVec) {
+    QVector2D qtVec = mathVec;
+    qtVec.setY(-mathVec.y());
+    return qtVec;
+}
 
 bool A1Solution::isRoot(Joint2D& joint) {
     return joint.get_parents().empty();
 }
 
-
-void A1Solution::initialize_joint_transform(int i) {
-    Joint2D* joint = m_joints[i];
-    QVector2D joint_pos = joint->get_position();
-
-    qDebug() << "INITITALIZE_A_TRANSFORM: this is node#" << i;
-
-    if(this->isRoot(*joint)) {
-//        qDebug() << "In root case " << i;
-        // Use global postion if root
-        this->m_joint_transforms[i].translate(Eigen::Vector2f(joint_pos.x(), -joint_pos.y()));
-//        std::cout << "Global pos of root node#" << i << " is:" << std::endl << m_joint_transforms[i].matrix() << std::endl << std::endl;
-    } else {
-//        qDebug() << "In child case " << i;
-        // Use relative postion if child
-        QVector2D parent_pos = joint->get_parents()[0]->get_position();
-        QVector2D relative_pos = joint_pos - parent_pos;
-        this->m_joint_transforms[i].translate(Eigen::Vector2f(relative_pos.x(), -relative_pos.y()));
-//        std::cout << "local pos of child node#" << i << " is:" << std::endl << m_joint_transforms[i].matrix() << std::endl << std::endl;
+int A1Solution::getJointIndex(Joint2D& joint) {
+    for(int i=0; i < (int)this->m_joints.size(); ++i) {
+        if (std::addressof(joint) == std::addressof(*m_joints[i])) {
+            return i;
+        }
     }
+
+    std::cout << "SELECTED NODE IS NOT IN THE VECTOR.\n THIS SHOULDN'T HAPPEN." << std::endl;
+    return -1;
 }
 
-void A1Solution::initialize_all_joint_transforms() {
-    // TODO: Remove
-    qDebug() << "Hello WORLD: A1Solution::initialize_joint_transforms()";
-
-    // set transform list size to joints size
-    std::vector<Eigen::Transform<float,2,Eigen::Affine>> transforms(this->m_joints.size());
-    m_joint_transforms = transforms;
-
-    qDebug() << "size is " << this->m_joint_transforms.size();
-
-    for(int i=0; i < this->m_joint_transforms.size(); ++i){
-        this->m_joint_transforms[i] = Eigen::Transform<float,2,Eigen::Affine>::Identity();
-        this->initialize_joint_transform(i);
-    }
+void A1Solution::toggleStats() {
+    showStats = !showStats;
 }
 
-void A1Solution::initialize_joint_position(int i) {
-    Joint2D* joint = m_joints[i];
-    QVector2D joint_pos = joint->get_position();
-
-    qDebug() << "this is part " << i;
-
-    if(joint->get_parents().empty()) {
-        qDebug() << "In root case " << i;
-        // Use global postion if root
-        this->m_joint_positions[i] = Eigen::Vector2f(joint_pos.x(), joint_pos.y());
-        qDebug() << "global pos of root node " << i << " is x=" << joint_pos.x() << ", y=" << joint_pos.y();
-
-    } else {
-        qDebug() << "In child case " << i;
-        // Use relative postion if child
-        QVector2D parent_pos = joint->get_parents()[0]->get_position();
-        QVector2D relative_pos = joint_pos - parent_pos;
-        this->m_joint_positions[i] = Eigen::Vector2f(relative_pos.x(), relative_pos.y());
-        qDebug() << "relative pos of node " << i << " is x=" << relative_pos.x() << ", y=" << relative_pos.y();
-    }
-}
-
-void A1Solution::initialize_all_joint_positions() {
-    // TODO: Remove
-    qDebug() << "Hello WORLD: A1Solution::initialize_joint_positions()";
-
-    // set transform size to joints size
-    std::vector<Eigen::Vector2f> transforms(this->m_joints.size());
-    m_joint_positions = transforms;
-
-    qDebug() << "size is " << this->m_joint_positions.size();
-
-    for(int i=0; i < this->m_joint_positions.size(); ++i){
-        this->initialize_joint_position(i);
-    }
-}
 
 void A1Solution::test_eigen_library(){
+
+    // Modified this function slightly so I can use the Eigen test Button to toggle console logs
+    toggleStats();
 
     // create a simple matrix 5 by 6
     MatrixXd mat(5,6);
